@@ -1,0 +1,25 @@
+set I := 1 2 3 4 5;  # 5 tasks 
+set R := 1 2 3;      # 3 resource types 
+ 
+set E := (1,2) (1,3) (2,4) (3,5);  # Precedence relations 
+ 
+param p :=  # Task durations 
+1 3 
+2 4 
+3 2 
+4 5 
+5 3; 
+ 
+param d :   1 2 3 :=  # Resource requirements 
+1           2 1 0 
+2           1 2 1 
+3           0 1 2 
+4           2 1 1 
+5           1 0 2; 
+ 
+param D :=  # Available resources 
+1 5 
+2 4 
+3 3; 
+ 
+param H := 20;  # Horizon length (slightly larger than sum of all task durations) 

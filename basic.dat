@@ -1,0 +1,41 @@
+# Zbiory 
+set I := Adam Ewa Ania Tomek Kasia;  # Pracownicy: Adam i Ewa
+set J := Project_A Project_B;  # Projekty: Project_A i Project_B
+set P := Junior Senior;  # Stanowiska: Junior i Senior
+set Groups := Group1 Group2;  # Grupy: Group1, Group2
+
+# Parametry
+param D : Junior Senior :=
+  Adam       1  0  
+  Ewa        1  1
+  Ania       1  0
+  Tomek      1  1
+  Kasia      1  0;
+
+
+param    R: Junior Senior :=
+  Project_A      2      1
+  Project_B      1      1;
+
+
+param S :=
+  Project_A 53000   # Zysk z projektu Project_A
+  Project_B 55000;  # Zysk z projektu Project_B
+
+param K_i :=
+  Adam 10000  # Koszt zatrudnienia Adama
+  Ewa 12000  # Koszt zatrudnienia Ewy
+  Ania 7000
+  Tomek 20000
+  Kasia 9000; # Koszt zatrudnienia Ani
+
+param P_i :=
+  Adam 1  # Adam na stałe (0 - stały, 1 - kontrakt)
+  Ewa 0   # Ewa na kontrakt (0 - stały, 1 - kontrakt)
+  Ania 1
+  Tomek 1
+  Kasia 1;
+
+param GroupMembers: Adam Ewa Ania Tomek Kasia :=
+  Group1               0   0    0     1     1
+  Group2               0   1    1     0     0;
