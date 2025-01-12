@@ -11,25 +11,51 @@ def run_basic_model():
 
         data_path = data_file_var.get()
         if not data_path:
-            messagebox.showerror("Error", "Wybierz plik z danymi.")
+            messagebox.showerror("Błąd", "Wybierz plik z danymi.")
             return
 
         ampl.read_data(data_path)
-
         ampl.setOption("solver", "gurobi")
 
         ampl.solve()
 
-        obj_value = ampl.get_objective('TotalProfit').value()  
-        results_text.delete(1.0, tk.END)  
-        results_text.insert(tk.END, f"Basic Model Objective Value: {obj_value}\n")
+        results_text.delete(1.0, tk.END)
 
-        var = ampl.get_variable('x') 
-        for index, value in var.get_values().to_dict().items():
-            results_text.insert(tk.END, f"Variable {index}: {value}\n")
+        results_text.insert(tk.END, "===== Wyniki: =====\n\n")
+
+        results_text.insert(tk.END, "Wybrane Projekty:\n")
+        var_x = ampl.get_variable('x')
+        selected_projects = [
+            index for index, value in var_x.get_values().to_dict().items() if value > 0.5
+        ]
+        for project in selected_projects:
+            results_text.insert(tk.END, f" - Projekt: {project}\n")
+
+        if not selected_projects:
+            results_text.insert(tk.END, "  Nie wybrano żadnych projektów.\n")
+
+        results_text.insert(tk.END, "\n")
+
+        results_text.insert(tk.END, "Przypisanie Pracowników:\n")
+        var_y = ampl.get_variable('y')
+        assignments = [
+            (i, p, j) for (i, p, j), value in var_y.get_values().to_dict().items() if value > 0.5
+        ]
+        for i, p, j in assignments:
+            results_text.insert(tk.END, f" - Pracownik: {i} przypisany do Stanowiska: {p} w Projekcie: {j}\n")
+
+        if not assignments:
+            results_text.insert(tk.END, "  Nie przypisano żadnych pracowników do projektów.\n")
+
+        results_text.insert(tk.END, "\nPodsumowanie:\n")
+        results_text.insert(
+            tk.END,
+            "Na podstawie wyników modelu, wybrano projekty i przypisania pracowników, które zostały wyświetlone powyżej.\n"
+        )
 
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while running the Basic Model:\n{str(e)}")
+        messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
+
 
 
 def run_detailed_model():

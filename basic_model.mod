@@ -19,7 +19,6 @@ param D {I, P} binary;
 # Zmienne decyzyjne
 var x {J} binary;               # 1, je li projekt j jest realizowany, 0 - je li nie
 var y {I, P, J} binary;         # 1, je li pracownik i jest przypisany do stanowiska p w projekcie j
-var is_qualified {I, P, K} binary;  # 1, je li pracownik i spe nia wymagania kompetencyjne na stanowisku p dla kompetencji k
 
 var group_in_project {Groups, J} binary;
 var groupmembers_count {Groups, J} integer;
