@@ -57,7 +57,6 @@ def run_basic_model():
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
 
 
-
 def run_detailed_model():
     try:
         ampl = AMPL()
@@ -66,7 +65,7 @@ def run_detailed_model():
 
         data_path = data_file_var.get()
         if not data_path:
-            messagebox.showerror("Error", "Wybierz plik z danymi.")
+            messagebox.showerror("Błąd", "Wybierz plik z danymi.")
             return
 
         ampl.read_data(data_path)
@@ -75,16 +74,63 @@ def run_detailed_model():
 
         ampl.solve()
 
-        obj_value = ampl.get_objective('ObjectiveFunction').value() 
         results_text.delete(1.0, tk.END)
-        results_text.insert(tk.END, f"Detailed Model Objective Value: {obj_value}\n")
 
-        var = ampl.get_variable('x')  
-        for index, value in var.get_values().to_dict().items():
-            results_text.insert(tk.END, f"Variable {index}: {value}\n")
+        results_text.insert(tk.END, "===== Wyniki: Model Szczegółowy =====\n\n")
+
+        # Fetch the value of Cmax (objective function)
+        Cmax = ampl.get_objective('ObjectiveFunction').value()
+        results_text.insert(tk.END, f"Czas trwania projektu (Cmax): {Cmax}\n\n")
+
+        # Get x{I, T} - Task schedule
+        results_text.insert(tk.END, f"Harmonogram zadań (do czasu Cmax = {Cmax}):\n")
+        var_x = ampl.get_variable('x')
+        tasks_schedule = [
+            (i, t) for (i, t), value in var_x.get_values().to_dict().items() if value > 0.5 and t <= Cmax
+        ]
+        for i, t in tasks_schedule:
+            results_text.insert(tk.END, f" - Zadanie: {i} jest aktywne w czasie: {t}\n")
+
+        if not tasks_schedule:
+            results_text.insert(tk.END, "  Żadne zadanie nie jest aktywne.\n")
+
+        results_text.insert(tk.END, "\n")
+
+        # Display resource usage and availability until Cmax
+        results_text.insert(tk.END, "Dostępność zasobów w czasie (do czasu Cmax):\n")
+        D = ampl.get_parameter('D').get_values().to_dict()  # Dostępne zasoby
+        requirement = ampl.get_parameter('d').get_values().to_dict()  # Wymagania zadań dla zasobów
+
+        resource_usage = {}  # Klucz: (zasób R, czas T), wartość: suma przypisania
+        free_resources = {}  # Klucz: (zasób R, czas T), wartość: ilość zasobu wolna
+
+        for r in D.keys():
+            for t in range(1, int(Cmax) + 1):  # Iteracja po czasie do Cmax
+                # Oblicz przypisanie zasobu r w czasie t
+                usage = sum(
+                    requirement[i, r]  # Wymaganie zasobu r dla zadania i
+                    for (i, t_prime), value in var_x.get_values().to_dict().items()
+                    if t_prime == t and value > 0.5 and (i, r) in requirement
+                )
+                resource_usage[(r, t)] = usage
+                free_resources[(r, t)] = D[r] - usage
+
+        for t in range(1, int(Cmax) + 1):  # Ogranicz do czasu <= Cmax
+            results_text.insert(tk.END, f"Etap nr {t}:\n")
+            for r in D.keys():
+                results_text.insert(tk.END, f" - Zasób: {r}, Przypisano: {resource_usage[(r, t)]}, Wolny: {free_resources[(r, t)]}\n")
+
+        results_text.insert(tk.END, "\nPodsumowanie:\n")
+        results_text.insert(
+            tk.END,
+            f"Projekt zakończy się w czasie  = {Cmax} tygodni.\n"
+        )
+        results_text.insert(tk.END, "Harmonogram zadań i dostępność zasobów wyświetlone powyżej.\n")
 
     except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while running the Detailed Model:\n{str(e)}")
+        messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Szczegółowego:\n{str(e)}")
+
+
 
 
 def select_data_file():
