@@ -76,14 +76,17 @@ def run_detailed_model():
 
         results_text.delete(1.0, tk.END)
 
+        # Define the highlighting style for "Wolny"
+        results_text.tag_configure("highlight_free", foreground="green", font=("TkDefaultFont", 10, "bold"))
+
         results_text.insert(tk.END, "===== Wyniki: Model Szczegółowy =====\n\n")
 
         # Fetch the value of Cmax (objective function)
         Cmax = ampl.get_objective('ObjectiveFunction').value()
-        results_text.insert(tk.END, f"Czas trwania projektu (Cmax): {Cmax}\n\n")
+        results_text.insert(tk.END, f"Czas trwania projektu: {Cmax - 1}\n\n")
 
         # Get x{I, T} - Task schedule
-        results_text.insert(tk.END, f"Harmonogram zadań (do czasu Cmax = {Cmax}):\n")
+        results_text.insert(tk.END, f"Harmonogram zadań:\n")
         var_x = ampl.get_variable('x')
         tasks_schedule = [
             (i, t) for (i, t), value in var_x.get_values().to_dict().items() if value > 0.5 and t <= Cmax
@@ -115,15 +118,19 @@ def run_detailed_model():
                 resource_usage[(r, t)] = usage
                 free_resources[(r, t)] = D[r] - usage
 
-        for t in range(1, int(Cmax) + 1):  # Ogranicz do czasu <= Cmax
-            results_text.insert(tk.END, f"Etap nr {t}:\n")
+        # Display and highlight free resources
+        for t in range(1, int(Cmax)):  # Ogranicz do czasu <= Cmax
+            results_text.insert(tk.END, f"Czas {t}:\n")
             for r in D.keys():
-                results_text.insert(tk.END, f" - Zasób: {r}, Przypisano: {resource_usage[(r, t)]}, Wolny: {free_resources[(r, t)]}\n")
+                results_text.insert(tk.END, f" - Zasób: {r}, Przypisano: {resource_usage[(r, t)]}, ")
+
+                # Highlight "Wolny" resources
+                results_text.insert(tk.END, f"Wolny: {free_resources[(r, t)]}\n", "highlight_free" if free_resources[(r, t)] > 0 else None)
 
         results_text.insert(tk.END, "\nPodsumowanie:\n")
         results_text.insert(
             tk.END,
-            f"Projekt zakończy się w czasie  = {Cmax} tygodni.\n"
+            f"Projekt zakończył się w czasie = {Cmax - 1}.\n"
         )
         results_text.insert(tk.END, "Harmonogram zadań i dostępność zasobów wyświetlone powyżej.\n")
 
