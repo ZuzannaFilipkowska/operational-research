@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from amplpy import AMPL
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 
 
 def run_basic_model():
@@ -91,6 +93,8 @@ def run_detailed_model():
         tasks_schedule = [
             (i, t) for (i, t), value in var_x.get_values().to_dict().items() if value > 0.5 and t <= Cmax
         ]
+
+        print(tasks_schedule)
         for i, t in tasks_schedule:
             results_text.insert(tk.END, f" - Zadanie: {i} jest aktywne w czasie: {t}\n")
 
@@ -134,6 +138,8 @@ def run_detailed_model():
         )
         results_text.insert(tk.END, "Harmonogram zadań i dostępność zasobów wyświetlone powyżej.\n")
 
+        create_gantt_in_tkinter(tasks_schedule)
+
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Szczegółowego:\n{str(e)}")
 
@@ -145,6 +151,35 @@ def select_data_file():
     data_file_var.set(file_path)
 
 
+def create_gantt_in_tkinter(task_schedule):
+    # Tworzenie wykresu Gantta
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    # Rysowanie zadań na wykresie
+    tasks_dict = {}
+
+    for task, start_time in task_schedule:
+        if task not in tasks_dict:
+            tasks_dict[task] = []
+        tasks_dict[task].append(start_time)
+
+    # Rysowanie pasków dla każdego zadania
+    for task, times in tasks_dict.items():
+        for start_time in times:
+            ax.barh(f"Zadanie {task}", width=1, left=start_time, color="blue")
+
+    ax.set_xlabel("Czas")
+    ax.set_ylabel("Zadania")
+    ax.set_title("Wykres Gantta")
+
+    # Osadzenie wykresu w oknie Tkinter
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.grid(row=3, column=0, padx=10, pady=10)
+    canvas.draw()
+
+
+    
 root = tk.Tk()
 root.title("AMPL Model Runner")
 
@@ -160,7 +195,7 @@ tk.Button(root, text="Zaplanuj projekt", command=run_detailed_model, width=15).g
 # Results display
 tk.Label(root, text="Wyniki:").grid(row=2, column=0, sticky="nw", padx=10, pady=5)
 results_text = tk.Text(root, width=80, height=20)
-results_text.grid(row=3, column=0, columnspan=3, padx=10, pady=5)
+results_text.grid(row=3, column=2, columnspan=4, padx=10, pady=10)
 
 # Start the Tkinter event loop
 root.mainloop()
