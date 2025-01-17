@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 from amplpy import AMPL
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+from tkinter import ttk
 
 
 def run_basic_model():
@@ -57,6 +58,22 @@ def run_basic_model():
 
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
+
+
+def compute_resource_stats(D, resource_usage, Cmax):
+    resource_stats = []
+
+    # Przechodzimy przez zasoby
+    for r in D.keys():
+        usage_values = [resource_usage[(r, t)] for t in range(1, int(Cmax) + 1)]  # Użycie zasobów w każdym czasie
+        total_usage = sum(usage_values)  # Całkowite wykorzystanie
+        max_usage = max(usage_values)   # Maksymalne wykorzystanie
+        avg_usage = total_usage / len(usage_values)  # Średnie wykorzystanie
+
+        # Dodajemy statystyki dla zasobu
+        resource_stats.append((r, avg_usage, max_usage))
+
+    return resource_stats
 
 
 def run_detailed_model():
@@ -139,6 +156,9 @@ def run_detailed_model():
         results_text.insert(tk.END, "Harmonogram zadań i dostępność zasobów wyświetlone powyżej.\n")
 
         create_gantt_in_tkinter(tasks_schedule)
+        
+        display_statistics(root, compute_resource_stats(D, resource_usage, Cmax))
+
 
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Szczegółowego:\n{str(e)}")
@@ -179,7 +199,20 @@ def create_gantt_in_tkinter(task_schedule):
     canvas.draw()
 
 
-    
+
+def display_statistics(root, data):
+    """Funkcja do wyświetlania statystyk w postaci tabeli"""
+    tree = ttk.Treeview(root, columns=("Zasób", "Średnie wykorzystanie", "Maksymalne wykorzystanie"), show="headings")
+    tree.heading("Zasób", text="Zasób")
+    tree.heading("Średnie wykorzystanie", text="Średnie wykorzystanie")
+    tree.heading("Maksymalne wykorzystanie", text="Maksymalne wykorzystanie")
+
+    for resource, avg, max_val in data:
+        tree.insert("", "end", values=(resource, avg, max_val))
+
+    tree.grid(row=4, column=2, padx=10, pady=10)
+
+
 root = tk.Tk()
 root.title("AMPL Model Runner")
 
