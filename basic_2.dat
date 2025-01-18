@@ -1,0 +1,60 @@
+# Zbiory 
+set I := Adam Ewa Ania Tomek Kasia Paulina Ola Bartek Wojtek Janek;  # Pracownicy: Adam i Ewa
+set J := A B C D;
+set P := Junior Mid Senior;  # Stanowiska: Junior i Senior
+set Groups := Group1 Group2;  # Grupy: Group1, Group2
+
+# Parametry
+param D : Junior Mid Senior :=
+  Adam         1   1      0  
+  Ewa          1   1      1
+  Ania         1   0      0
+  Tomek        1   1      1
+  Kasia        1   1      0
+  Paulina      1   1      0
+  Ola          1   0      0
+  Bartek       1   0      0
+  Wojtek       1   1      1
+  Janek        1   1      0;
+
+
+param    R: Junior Mid Senior :=
+  A      2   1     1
+  B      1   2     1
+  C      1   1     1
+  D      2   2     2  ;
+
+
+param S :=
+  A 530000
+  B 550000
+  C 300000 
+  D 900000;
+
+param K_i :=
+  Adam    10000  # Koszt zatrudnienia Adama
+  Ewa     30000  # Koszt zatrudnienia Ewy
+  Ania     9000
+  Tomek   27000
+  Kasia   20000
+  Paulina 18000
+  Ola     13000
+  Bartek  10000
+  Wojtek  32000
+  Janek   22000;
+
+param P_i :=
+  Adam    1  # Adam na stałe (0 - stały, 1 - kontrakt)
+  Ewa     0  # Ewa na kontrakt (0 - stały, 1 - kontrakt)
+  Ania    1
+  Tomek   1
+  Kasia   1
+  Paulina 0
+  Ola     1
+  Bartek  0
+  Wojtek  1
+  Janek   0;
+
+param GroupMembers: Adam Ewa Ania Tomek Kasia Paulina Ola Bartek Wojtek Janek:=
+  Group1               0   0    0     1     1       0   0      0      0     0
+  Group2               0   1    1     0     0       0   0     0      0     0;
