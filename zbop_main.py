@@ -186,7 +186,7 @@ def create_gantt_in_tkinter(task_schedule):
     # Rysowanie pasków dla każdego zadania
     for task, times in tasks_dict.items():
         for start_time in times:
-            ax.barh(f"Zadanie {task}", width=1, left=start_time, color="blue")
+            ax.barh(f"Zadanie {task}", width=1, left=start_time, color='#4C9F70')
 
     ax.set_xlabel("Czas")
     ax.set_ylabel("Zadania")
@@ -201,7 +201,7 @@ def create_gantt_in_tkinter(task_schedule):
 
 
 def display_statistics(root, data):
-    """Funkcja do wyświetlania statystyk w postaci tabeli"""
+    """Funkcja do wyświetlania statystyk w postaci tabeli oraz wykresu z wykresem słupkowym skumulowanym"""
     tree = ttk.Treeview(root, columns=("Zasób", "Średnie wykorzystanie", "Maksymalne wykorzystanie"), show="headings")
     tree.heading("Zasób", text="Zasób")
     tree.heading("Średnie wykorzystanie", text="Średnie wykorzystanie")
@@ -212,6 +212,31 @@ def display_statistics(root, data):
 
     tree.grid(row=4, column=2, padx=10, pady=10)
 
+    # Create a stacked bar chart based on the data
+    resources = [entry[0] for entry in data]
+    avg_usage = [entry[1] for entry in data]
+    max_usage = [entry[2] for entry in data]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Plotting stacked bars: the first bar will be avg_usage and the second one will be stacked on top (max_usage - avg_usage)
+    ax.bar(resources, avg_usage, label="Średnie wykorzystanie", color='#4C9F70')  # A green color for the average usage
+    ax.bar(resources, [max_val - avg for max_val, avg in zip(max_usage, avg_usage)], 
+           bottom=avg_usage, label="Maksymalne wykorzystanie", color='#E45756')  # A red color for the max usage
+
+    # Add labels and title
+    ax.set_xlabel('Zasoby')
+    ax.set_ylabel('Wykorzystanie')
+    ax.set_title('Wykorzystanie zasobów (Wykres skumulowany)')
+    
+    # Adding the legend
+    ax.legend()
+
+    # Embed the plot in Tkinter window
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.grid(row=4, column=0, padx=10, pady=10)
+    canvas.draw()
 
 root = tk.Tk()
 root.title("AMPL Model Runner")
