@@ -56,9 +56,43 @@ def run_basic_model():
             "Na podstawie wyników modelu, wybrano projekty i przypisania pracowników, które zostały wyświetlone powyżej.\n"
         )
 
+        total_profit = ampl.get_objective('TotalProfit').value()
+        total_cost = 0
+
+        var_y_dict = var_y.get_values().to_dict()
+        for (i, p, j), value in var_y_dict.items():
+            if value > 0.5:
+                cost = ampl.get_parameter('K_i')[i]
+                total_cost += cost
+
+        display_cost_profit_chart(total_profit, total_cost)
+
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
 
+def display_cost_profit_chart(profit, cost):
+    """Display a bar chart for profit and cost."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Create bars for profit and cost
+    categories = ['Profit', 'Cost']
+    values = [profit, cost]
+
+    ax.bar(categories, values, color=['#4C9F70', '#E45756'])
+
+    ax.set_xlabel('Category')
+    ax.set_ylabel('Amount')
+    ax.set_title('Profit vs Cost')
+
+    # Adding the values on top of the bars
+    for i, v in enumerate(values):
+        ax.text(i, v + 0.05, f'{v:.2f}', ha='center', va='bottom', fontsize=12)
+
+    # Embed the chart in Tkinter window
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.grid(row=3, column=0, padx=10, pady=10)
+    canvas.draw()
 
 def compute_resource_stats(D, resource_usage, Cmax):
     resource_stats = []
