@@ -1,6 +1,6 @@
 # Zbiory 
 set I := Adam Ewa Ania Tomek Kasia Paulina Ola Bartek Wojtek Janek;  # Pracownicy: Adam i Ewa
-set J := Project_A Project_B Project_C Project_D;
+set J := A B C D;
 set P := Junior Mid Senior;  # Stanowiska: Junior i Senior
 set Groups := Group1 Group2;  # Grupy: Group1, Group2
 
@@ -19,17 +19,17 @@ param D : Junior Mid Senior :=
 
 
 param    R: Junior Mid Senior :=
-  Project_A      2   1     1
-  Project_B      1   2     1
-  Project_C      1   1     1
-  Project_D      2   2     2  ;
+  A      2   1     1
+  B      1   2     1
+  C      1   1     1
+  D      2   2     2  ;
 
 
 param S :=
-  Project_A 530000
-  Project_B 550000
-  Project_C 300000 
-  Project_D 900000;
+  A 530000
+  B 550000
+  C 300000 
+  D 900000;
 
 param K_i :=
   Adam    10000  # Koszt zatrudnienia Adama

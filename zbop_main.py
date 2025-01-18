@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from amplpy import AMPL
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import networkx as nx
 import matplotlib.pyplot as plt
 from tkinter import ttk
 
@@ -31,8 +32,22 @@ def run_basic_model():
         selected_projects = [
             index for index, value in var_x.get_values().to_dict().items() if value > 0.5
         ]
+        profit_values = []
+        cost_values = []
+        
         for project in selected_projects:
             results_text.insert(tk.END, f" - Projekt: {project}\n")
+            profit_values.append(ampl.get_parameter('S')[project])
+
+            cost = 0
+            var_y = ampl.get_variable('y')
+            var_y_dict = var_y.get_values().to_dict()
+            for (i, p, j), value in var_y_dict.items():
+                if j == project and value > 0.5:
+                    cost += ampl.get_parameter('K_i')[i]
+            cost_values.append(cost)
+
+        employee_assignment_data = gather_employee_project_assignments(ampl, selected_projects)
 
         if not selected_projects:
             results_text.insert(tk.END, "  Nie wybrano żadnych projektów.\n")
@@ -65,34 +80,15 @@ def run_basic_model():
                 cost = ampl.get_parameter('K_i')[i]
                 total_cost += cost
 
-        display_cost_profit_chart(total_profit, total_cost)
+        display_stacked_project_profit_chart(selected_projects, profit_values, cost_values)
+        display_employee_project_graph(employee_assignment_data)
+
+        results_text.insert(tk.END, f"Całkowity zysk: {total_profit}")
+        results_text.insert(tk.END, f"Całkowity koszt: {total_cost}")
 
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
 
-def display_cost_profit_chart(profit, cost):
-    """Display a bar chart for profit and cost."""
-    fig, ax = plt.subplots(figsize=(8, 5))
-
-    # Create bars for profit and cost
-    categories = ['Profit', 'Cost']
-    values = [profit, cost]
-
-    ax.bar(categories, values, color=['#4C9F70', '#E45756'])
-
-    ax.set_xlabel('Category')
-    ax.set_ylabel('Amount')
-    ax.set_title('Profit vs Cost')
-
-    # Adding the values on top of the bars
-    for i, v in enumerate(values):
-        ax.text(i, v + 0.05, f'{v:.2f}', ha='center', va='bottom', fontsize=12)
-
-    # Embed the chart in Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas_widget = canvas.get_tk_widget()
-    canvas_widget.grid(row=3, column=0, padx=10, pady=10)
-    canvas.draw()
 
 def compute_resource_stats(D, resource_usage, Cmax):
     resource_stats = []
@@ -108,6 +104,71 @@ def compute_resource_stats(D, resource_usage, Cmax):
         resource_stats.append((r, avg_usage, max_usage))
 
     return resource_stats
+
+def display_stacked_project_profit_chart(selected_projects, profit_values, cost_values):
+    """Display a stacked bar chart for Project Selection vs Profit (with Cost)."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    # Create stacked bars: first plot the cost and then add the profit on top
+    ax.bar(selected_projects, profit_values, color='#4C9F70', label='Przychód')
+    ax.bar(selected_projects, cost_values, bottom=profit_values, color='#E45756', label='Koszt')
+
+    ax.set_xlabel('Projekt')
+    ax.set_ylabel('Wartość')
+    ax.set_title('Przychód i koszt wybranych projektów')
+    
+    ax.legend()
+
+    # Adding value labels on top of the profit part
+    for i, (cost, profit) in enumerate(zip(cost_values, profit_values)):
+        ax.text(i, cost + profit + 0.05, f'{cost:.2f}', ha='center', va='bottom', fontsize=12)
+        ax.text(i, profit - 0.05, f'{profit:.2f}', ha='center', va='top', fontsize=12)
+
+    # Embed the chart in Tkinter window
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.grid(row=3, column=0, padx=10, pady=10)
+    canvas.draw()
+    
+
+def gather_employee_project_assignments(ampl, selected_projects):
+    """Gather employee-to-project assignment data."""
+    var_y = ampl.get_variable('y')
+    employee_project_data = []
+
+    # Loop over all assignments and collect the employee-project connections
+    for (i, p, j), value in var_y.get_values().to_dict().items():
+        if value > 0.5:  # If the employee is assigned to the project
+            if j in selected_projects:  # Only count if project is selected
+                employee_project_data.append((f"{i}", f"Projekt {j}"))
+
+    return employee_project_data
+
+def display_employee_project_graph(employee_project_data):
+    """Display an employee-to-project assignment graph."""
+    G = nx.Graph()
+
+    G.add_edges_from(employee_project_data)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    pos = nx.spring_layout(G, seed=42)
+
+    node_colors = []
+    for node in G.nodes:
+        if node.startswith("Projekt"):
+            node_colors.append("lightgreen")
+        else:
+            node_colors.append("lightblue")
+
+    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=3000, font_size=10, font_weight="bold", edge_color="gray")
+
+    ax.set_title("Przypisanie pracowników do projektów")
+
+    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas_widget = canvas.get_tk_widget()
+    canvas_widget.grid(row=5, column=0, padx=10, pady=10)
+    canvas.draw()
 
 
 def run_detailed_model():
