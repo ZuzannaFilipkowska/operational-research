@@ -23,6 +23,9 @@ def run_basic_model():
 
         ampl.solve()
 
+        for widget in right_frame.winfo_children():
+          widget.destroy()
+
         results_text.delete(1.0, tk.END)
 
         results_text.insert(tk.END, "===== Wyniki: =====\n\n")
@@ -89,7 +92,6 @@ def run_basic_model():
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Podstawowego:\n{str(e)}")
 
-
 def compute_resource_stats(D, resource_usage, Cmax):
     resource_stats = []
 
@@ -125,12 +127,11 @@ def display_stacked_project_profit_chart(selected_projects, profit_values, cost_
         ax.text(i, profit - 0.05, f'{profit:.2f}', ha='center', va='top', fontsize=12)
 
     # Embed the chart in Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
     canvas_widget = canvas.get_tk_widget()
     canvas_widget.grid(row=3, column=0, padx=10, pady=10)
     canvas.draw()
     
-
 def gather_employee_project_assignments(ampl, selected_projects):
     """Gather employee-to-project assignment data."""
     var_y = ampl.get_variable('y')
@@ -165,11 +166,10 @@ def display_employee_project_graph(employee_project_data):
 
     ax.set_title("Przypisanie pracowników do projektów")
 
-    canvas = FigureCanvasTkAgg(fig, master=root)
+    canvas = FigureCanvasTkAgg(fig, master=right_frame)
     canvas_widget = canvas.get_tk_widget()
     canvas_widget.grid(row=5, column=0, padx=10, pady=10)
     canvas.draw()
-
 
 def run_detailed_model():
     try:
@@ -190,6 +190,9 @@ def run_detailed_model():
 
         results_text.delete(1.0, tk.END)
 
+        for widget in right_frame.winfo_children():
+          widget.destroy()
+
         # Define the highlighting style for "Wolny"
         results_text.tag_configure("highlight_free", foreground="green", font=("TkDefaultFont", 10, "bold"))
 
@@ -197,7 +200,7 @@ def run_detailed_model():
 
         # Fetch the value of Cmax (objective function)
         Cmax = ampl.get_objective('ObjectiveFunction').value()
-        results_text.insert(tk.END, f"Czas trwania projektu: {Cmax - 1}\n\n")
+        results_text.insert(tk.END, f"Czas trwania projektu: {Cmax}\n\n")
 
         # Get x{I, T} - Task schedule
         results_text.insert(tk.END, f"Harmonogram zadań:\n")
@@ -246,31 +249,31 @@ def run_detailed_model():
         results_text.insert(tk.END, "\nPodsumowanie:\n")
         results_text.insert(
             tk.END,
-            f"Projekt zakończył się w czasie = {Cmax - 1}.\n"
+            f"Projekt zakończył się w czasie = {Cmax}.\n"
         )
         results_text.insert(tk.END, "Harmonogram zadań i dostępność zasobów wyświetlone powyżej.\n")
 
-        create_gantt_in_tkinter(tasks_schedule)
+        create_gantt_in_tkinter(tasks_schedule,right_frame)
         
-        display_statistics(root, compute_resource_stats(D, resource_usage, Cmax))
+        display_statistics(compute_resource_stats(D, resource_usage, Cmax), right_frame)
 
 
     except Exception as e:
         messagebox.showerror("Błąd", f"Wystąpił błąd podczas uruchamiania Modelu Szczegółowego:\n{str(e)}")
 
-
-
-
 def select_data_file():
     file_path = filedialog.askopenfilename(filetypes=[("AMPL Data Files", "*.dat")])
     data_file_var.set(file_path)
 
+def create_gantt_in_tkinter(task_schedule, canvas_frame):
+    # Clear existing widgets in the canvas_frame
+    for widget in canvas_frame.winfo_children():
+        widget.destroy()
 
-def create_gantt_in_tkinter(task_schedule):
-    # Tworzenie wykresu Gantta
+    # Create Gantt chart
     fig, ax = plt.subplots(figsize=(8, 4))
 
-    # Rysowanie zadań na wykresie
+    # Plotting tasks on the chart
     tasks_dict = {}
 
     for task, start_time in task_schedule:
@@ -278,7 +281,7 @@ def create_gantt_in_tkinter(task_schedule):
             tasks_dict[task] = []
         tasks_dict[task].append(start_time)
 
-    # Rysowanie pasków dla każdego zadania
+    # Draw bars for each task
     for task, times in tasks_dict.items():
         for start_time in times:
             ax.barh(f"Zadanie {task}", width=1, left=start_time, color='#4C9F70')
@@ -287,25 +290,31 @@ def create_gantt_in_tkinter(task_schedule):
     ax.set_ylabel("Zadania")
     ax.set_title("Wykres Gantta")
 
-    # Osadzenie wykresu w oknie Tkinter
-    canvas = FigureCanvasTkAgg(fig, master=root)
+    # Embed the plot in the Tkinter window canvas_frame
+    canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
     canvas_widget = canvas.get_tk_widget()
-    canvas_widget.grid(row=3, column=0, padx=10, pady=10)
+    canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     canvas.draw()
 
 
+def display_statistics(data, results_frame):
+    """Function to display statistics in the form of a table and a stacked bar chart."""
 
-def display_statistics(root, data):
-    """Funkcja do wyświetlania statystyk w postaci tabeli oraz wykresu z wykresem słupkowym skumulowanym"""
-    tree = ttk.Treeview(root, columns=("Zasób", "Średnie wykorzystanie", "Maksymalne wykorzystanie"), show="headings")
+    # Create a frame for statistics
+    stats_frame = tk.Frame(results_frame)
+    stats_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.Y)  # Use pack here
+
+    # Create a treeview for displaying statistics
+    tree = ttk.Treeview(stats_frame, columns=("Zasób", "Średnie wykorzystanie", "Maksymalne wykorzystanie"), show="headings")
     tree.heading("Zasób", text="Zasób")
     tree.heading("Średnie wykorzystanie", text="Średnie wykorzystanie")
     tree.heading("Maksymalne wykorzystanie", text="Maksymalne wykorzystanie")
 
+    # Insert data into the treeview
     for resource, avg, max_val in data:
         tree.insert("", "end", values=(resource, avg, max_val))
 
-    tree.grid(row=4, column=2, padx=10, pady=10)
+    tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)  # Pack the treeview to expand in frame
 
     # Create a stacked bar chart based on the data
     resources = [entry[0] for entry in data]
@@ -314,41 +323,83 @@ def display_statistics(root, data):
 
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Plotting stacked bars: the first bar will be avg_usage and the second one will be stacked on top (max_usage - avg_usage)
-    ax.bar(resources, avg_usage, label="Średnie wykorzystanie", color='#4C9F70')  # A green color for the average usage
-    ax.bar(resources, [max_val - avg for max_val, avg in zip(max_usage, avg_usage)], 
-           bottom=avg_usage, label="Maksymalne wykorzystanie", color='#E45756')  # A red color for the max usage
+    # Plotting stacked bars
+    ax.bar(resources, avg_usage, label="Średnie wykorzystanie", color='#4C9F70')
+    ax.bar(resources, [max_val - avg for max_val, avg in zip(max_usage, avg_usage)],
+           bottom=avg_usage, label="Maksymalne wykorzystanie", color='#E45756')
 
-    # Add labels and title
     ax.set_xlabel('Zasoby')
     ax.set_ylabel('Wykorzystanie')
     ax.set_title('Wykorzystanie zasobów (Wykres skumulowany)')
-    
-    # Adding the legend
     ax.legend()
 
-    # Embed the plot in Tkinter window
-    canvas = FigureCanvasTkAgg(fig, master=root)
+    # Embed the plot in the statistics frame
+    canvas = FigureCanvasTkAgg(fig, master=stats_frame)
     canvas_widget = canvas.get_tk_widget()
-    canvas_widget.grid(row=4, column=0, padx=10, pady=10)
+    canvas_widget.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)  # Use pack to position the canvas
     canvas.draw()
 
+# Main application setup
 root = tk.Tk()
 root.title("AMPL Model Runner")
 
-tk.Label(root, text="Wybierz plik z danymi (.dat):").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+# Frame for file selection
+file_frame = tk.Frame(root)
+file_frame.grid(row=0, column=0, columnspan=3, padx=10, pady=5, sticky="ew")
+tk.Label(file_frame, text="Wybierz plik z danymi (.dat):").pack(side=tk.LEFT)
 data_file_var = tk.StringVar()
-tk.Entry(root, textvariable=data_file_var, width=50).grid(row=0, column=1, padx=10, pady=5)
-tk.Button(root, text="Wybierz...", command=select_data_file).grid(row=0, column=2, padx=10, pady=5)
+tk.Entry(file_frame, textvariable=data_file_var, width=50).pack(side=tk.LEFT)
+tk.Button(file_frame, text="Wybierz...", command=select_data_file).pack(side=tk.LEFT)
 
-# Buttons to run the models
-tk.Button(root, text="Wybierz projekty", command=run_basic_model, width=15).grid(row=1, column=0, padx=10, pady=10)
-tk.Button(root, text="Zaplanuj projekt", command=run_detailed_model, width=15).grid(row=1, column=1, padx=10, pady=10)
+# Frame for model running buttons
+button_frame = tk.Frame(root)
+button_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+tk.Button(button_frame, text="Wybierz projekty", command=run_basic_model).pack(side=tk.LEFT)
+tk.Button(button_frame, text="Zaplanuj projekt", command=run_detailed_model).pack(side=tk.LEFT)
 
-# Results display
-tk.Label(root, text="Wyniki:").grid(row=2, column=0, sticky="nw", padx=10, pady=5)
-results_text = tk.Text(root, width=80, height=20)
-results_text.grid(row=3, column=2, columnspan=4, padx=10, pady=10)
+# Results display frame
+two_col_grid_frame = tk.Frame(root)
+two_col_grid_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=5, sticky="nsew")
 
-# Start the Tkinter event loop
+# Configure the grid_frame to fill available space
+root.grid_rowconfigure(2, weight=1)  # Allow the row to expand
+root.grid_columnconfigure(0, weight=1)  # Allow the column to expand
+root.grid_columnconfigure(1, weight=1)
+
+canvas = tk.Canvas(two_col_grid_frame)
+scrollbar = tk.Scrollbar(two_col_grid_frame, orient="vertical", command=canvas.yview)
+scrollbar.pack(side=tk.RIGHT, fill="y")
+
+# Configure canvas
+canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+canvas.configure(yscrollcommand=scrollbar.set)
+
+# Create a frame inside the canvas
+scrollable_frame = tk.Frame(canvas)
+
+# Add the scrollable frame to the canvas
+canvas.create_window((0, 0), window=scrollable_frame, anchor='nw')
+
+# Function to resize the canvas when the scrollable frame is resized
+def on_frame_configure(event):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+scrollable_frame.bind("<Configure>", on_frame_configure)
+
+# Left: Results Text Area
+results_frame = tk.Frame(scrollable_frame)
+results_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+
+tk.Label(results_frame, text="Wyniki:").pack(anchor="nw")
+results_text = tk.Text(results_frame, width=40, height=20)
+results_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+right_frame = tk.Frame(scrollable_frame)
+right_frame.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
+
+# Final window adjustments
+two_col_grid_frame.grid_rowconfigure(0, weight=1)
+two_col_grid_frame.grid_columnconfigure(0, weight=1)
+two_col_grid_frame.grid_columnconfigure(1, weight=3)
+
 root.mainloop()
