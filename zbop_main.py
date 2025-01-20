@@ -95,14 +95,13 @@ def run_basic_model():
 def compute_resource_stats(D, resource_usage, Cmax):
     resource_stats = []
 
-    # Przechodzimy przez zasoby
+    # Loop over resources
     for r in D.keys():
-        usage_values = [resource_usage[(r, t)] for t in range(1, int(Cmax) + 1)]  # Użycie zasobów w każdym czasie
+        usage_values = [resource_usage[(r, t)] for t in range(1, int(Cmax) + 1)]  
         total_usage = sum(usage_values)  # Całkowite wykorzystanie
         max_usage = max(usage_values)   # Maksymalne wykorzystanie
         avg_usage = total_usage / len(usage_values)  # Średnie wykorzystanie
 
-        # Dodajemy statystyki dla zasobu
         resource_stats.append((r, avg_usage, max_usage))
 
     return resource_stats
@@ -111,22 +110,18 @@ def display_stacked_project_profit_chart(selected_projects, profit_values, cost_
     """Display a stacked bar chart for Project Selection vs Profit (with Cost)."""
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Create stacked bars: first plot the cost and then add the profit on top
     ax.bar(selected_projects, profit_values, color='#4C9F70', label='Przychód')
     ax.bar(selected_projects, cost_values, bottom=profit_values, color='#E45756', label='Koszt')
 
     ax.set_xlabel('Projekt')
     ax.set_ylabel('Wartość')
     ax.set_title('Przychód i koszt wybranych projektów')
-    
     ax.legend()
 
-    # Adding value labels on top of the profit part
     for i, (cost, profit) in enumerate(zip(cost_values, profit_values)):
         ax.text(i, cost + profit + 0.05, f'{cost:.2f}', ha='center', va='bottom', fontsize=12)
         ax.text(i, profit - 0.05, f'{profit:.2f}', ha='center', va='top', fontsize=12)
 
-    # Embed the chart in Tkinter window
     canvas = FigureCanvasTkAgg(fig, master=right_frame)
     canvas_widget = canvas.get_tk_widget()
     canvas_widget.grid(row=3, column=0, padx=10, pady=10)
@@ -193,16 +188,13 @@ def run_detailed_model():
         for widget in right_frame.winfo_children():
           widget.destroy()
 
-        # Define the highlighting style for "Wolny"
         results_text.tag_configure("highlight_free", foreground="green", font=("TkDefaultFont", 10, "bold"))
 
         results_text.insert(tk.END, "===== Wyniki: Model Szczegółowy =====\n\n")
 
-        # Fetch the value of Cmax (objective function)
         Cmax = ampl.get_objective('ObjectiveFunction').value()
         results_text.insert(tk.END, f"Czas trwania projektu: {Cmax}\n\n")
 
-        # Get x{I, T} - Task schedule
         results_text.insert(tk.END, f"Harmonogram zadań:\n")
         var_x = ampl.get_variable('x')
         tasks_schedule = [
@@ -218,16 +210,15 @@ def run_detailed_model():
 
         results_text.insert(tk.END, "\n")
 
-        # Display resource usage and availability until Cmax
         results_text.insert(tk.END, "Dostępność zasobów w czasie (do czasu Cmax):\n")
         D = ampl.get_parameter('D').get_values().to_dict()  # Dostępne zasoby
         requirement = ampl.get_parameter('d').get_values().to_dict()  # Wymagania zadań dla zasobów
 
-        resource_usage = {}  # Klucz: (zasób R, czas T), wartość: suma przypisania
-        free_resources = {}  # Klucz: (zasób R, czas T), wartość: ilość zasobu wolna
+        resource_usage = {}  
+        free_resources = {}
 
         for r in D.keys():
-            for t in range(1, int(Cmax) + 1):  # Iteracja po czasie do Cmax
+            for t in range(1, int(Cmax) + 1):
                 # Oblicz przypisanie zasobu r w czasie t
                 usage = sum(
                     requirement[i, r]  # Wymaganie zasobu r dla zadania i
@@ -237,13 +228,11 @@ def run_detailed_model():
                 resource_usage[(r, t)] = usage
                 free_resources[(r, t)] = D[r] - usage
 
-        # Display and highlight free resources
         for t in range(1, int(Cmax)):  # Ogranicz do czasu <= Cmax
             results_text.insert(tk.END, f"Czas {t}:\n")
             for r in D.keys():
                 results_text.insert(tk.END, f" - Zasób: {r}, Przypisano: {resource_usage[(r, t)]}, ")
 
-                # Highlight "Wolny" resources
                 results_text.insert(tk.END, f"Wolny: {free_resources[(r, t)]}\n", "highlight_free" if free_resources[(r, t)] > 0 else None)
 
         results_text.insert(tk.END, "\nPodsumowanie:\n")
@@ -273,7 +262,6 @@ def create_gantt_in_tkinter(task_schedule, canvas_frame):
     # Create Gantt chart
     fig, ax = plt.subplots(figsize=(8, 4))
 
-    # Plotting tasks on the chart
     tasks_dict = {}
 
     for task, start_time in task_schedule:
@@ -281,7 +269,6 @@ def create_gantt_in_tkinter(task_schedule, canvas_frame):
             tasks_dict[task] = []
         tasks_dict[task].append(start_time)
 
-    # Draw bars for each task
     for task, times in tasks_dict.items():
         for start_time in times:
             ax.barh(f"Zadanie {task}", width=1, left=start_time, color='#4C9F70')
@@ -290,7 +277,6 @@ def create_gantt_in_tkinter(task_schedule, canvas_frame):
     ax.set_ylabel("Zadania")
     ax.set_title("Wykres Gantta")
 
-    # Embed the plot in the Tkinter window canvas_frame
     canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
     canvas_widget = canvas.get_tk_widget()
     canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -300,30 +286,25 @@ def create_gantt_in_tkinter(task_schedule, canvas_frame):
 def display_statistics(data, results_frame):
     """Function to display statistics in the form of a table and a stacked bar chart."""
 
-    # Create a frame for statistics
     stats_frame = tk.Frame(results_frame)
     stats_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.Y)  # Use pack here
 
-    # Create a treeview for displaying statistics
     tree = ttk.Treeview(stats_frame, columns=("Zasób", "Średnie wykorzystanie", "Maksymalne wykorzystanie"), show="headings")
     tree.heading("Zasób", text="Zasób")
     tree.heading("Średnie wykorzystanie", text="Średnie wykorzystanie")
     tree.heading("Maksymalne wykorzystanie", text="Maksymalne wykorzystanie")
 
-    # Insert data into the treeview
     for resource, avg, max_val in data:
         tree.insert("", "end", values=(resource, avg, max_val))
 
-    tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)  # Pack the treeview to expand in frame
+    tree.pack(side=tk.TOP, fill=tk.BOTH, expand=True)  
 
-    # Create a stacked bar chart based on the data
     resources = [entry[0] for entry in data]
     avg_usage = [entry[1] for entry in data]
     max_usage = [entry[2] for entry in data]
 
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    # Plotting stacked bars
     ax.bar(resources, avg_usage, label="Średnie wykorzystanie", color='#4C9F70')
     ax.bar(resources, [max_val - avg for max_val, avg in zip(max_usage, avg_usage)],
            bottom=avg_usage, label="Maksymalne wykorzystanie", color='#E45756')
@@ -333,10 +314,9 @@ def display_statistics(data, results_frame):
     ax.set_title('Wykorzystanie zasobów (Wykres skumulowany)')
     ax.legend()
 
-    # Embed the plot in the statistics frame
     canvas = FigureCanvasTkAgg(fig, master=stats_frame)
     canvas_widget = canvas.get_tk_widget()
-    canvas_widget.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)  # Use pack to position the canvas
+    canvas_widget.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)  
     canvas.draw()
 
 # Main application setup
@@ -361,23 +341,21 @@ tk.Button(button_frame, text="Zaplanuj projekt", command=run_detailed_model).pac
 two_col_grid_frame = tk.Frame(root)
 two_col_grid_frame.grid(row=2, column=0, columnspan=3, padx=10, pady=5, sticky="nsew")
 
-# Configure the grid_frame to fill available space
-root.grid_rowconfigure(2, weight=1)  # Allow the row to expand
-root.grid_columnconfigure(0, weight=1)  # Allow the column to expand
+
+root.grid_rowconfigure(2, weight=1)  
+root.grid_columnconfigure(0, weight=1) 
 root.grid_columnconfigure(1, weight=1)
 
 canvas = tk.Canvas(two_col_grid_frame)
 scrollbar = tk.Scrollbar(two_col_grid_frame, orient="vertical", command=canvas.yview)
 scrollbar.pack(side=tk.RIGHT, fill="y")
 
-# Configure canvas
+
 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 canvas.configure(yscrollcommand=scrollbar.set)
 
-# Create a frame inside the canvas
-scrollable_frame = tk.Frame(canvas)
 
-# Add the scrollable frame to the canvas
+scrollable_frame = tk.Frame(canvas)
 canvas.create_window((0, 0), window=scrollable_frame, anchor='nw')
 
 # Function to resize the canvas when the scrollable frame is resized
